@@ -1,0 +1,6 @@
+<h2>Weekly Digest</h2>
+<ul>
+{% for course in courses %}
+  <li>{{ course.title }} - {{ course.progress }}%</li>
+{% endfor %}
+</ul>
