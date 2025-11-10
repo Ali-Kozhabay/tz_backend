@@ -1,36 +1,46 @@
+import os
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from sqlalchemy.engine import make_url
+
+
+load_dotenv()
+
+
+def _env_field(name: str, default: Any) -> Field:
+    """Return a Field whose default pulls from env vars (fallback to provided default)."""
+
+    return Field(default_factory=lambda name=name, default=default: os.getenv(name, default))
 
 
 class Settings(BaseModel):
     """Application configuration derived from environment variables."""
 
-    database_url: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/app"
+    database_url: str = _env_field(
+        "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/app"
     )
-    redis_url: str = Field(default="redis://localhost:6379/0")
-    jwt_secret: str = Field(default="changeme")
-    jwt_alg: str = Field(default="HS256")
-    access_token_ttl_minutes: int = Field(default=15)
-    refresh_token_ttl_days: int = Field(default=7)
-    smtp_host: str = Field(default="localhost")
-    smtp_port: int = Field(default=1025)
-    smtp_user: str | None = Field(default=None)
-    smtp_pass: str | None = Field(default=None)
-    s3_endpoint: str = Field(default="http://localhost:9000")
-    s3_access_key: str = Field(default="minio")
-    s3_secret_key: str = Field(default="minio123")
-    s3_bucket: str = Field(default="courses")
-    base_url: str = Field(default="http://localhost:8000")
-    environment: Literal["development", "production", "test"] = Field(
-        default="development"
+    redis_url: str = _env_field("REDIS_URL", "redis://localhost:6379")
+    jwt_secret: str = _env_field("JWT_SECRET", "changeme")
+    jwt_alg: str = _env_field("JWT_ALG", "HS256")
+    access_token_ttl_minutes: int = _env_field("ACCESS_TOKEN_TTL_MINUTES", "15")
+    refresh_token_ttl_days: int = _env_field("REFRESH_TOKEN_TTL_DAYS", "7")
+    smtp_host: str = _env_field("SMTP_HOST", "localhost")
+    smtp_port: int = _env_field("SMTP_PORT", "1025")
+    smtp_user: str | None = _env_field("SMTP_USER", None)
+    smtp_pass: str | None = _env_field("SMTP_PASS", None)
+    s3_endpoint: str = _env_field("S3_ENDPOINT", "http://localhost:9000")
+    s3_access_key: str = _env_field("S3_ACCESS_KEY", "minio")
+    s3_secret_key: str = _env_field("S3_SECRET_KEY", "minio123")
+    s3_bucket: str = _env_field("S3_BUCKET", "courses")
+    base_url: str = _env_field("BASE_URL", "http://localhost:8000")
+    environment: Literal["development", "production", "test"] = _env_field(
+        "ENVIRONMENT", "development"
     )
 
     class Config:
-        env_file = ".env"
         env_prefix = ""
         frozen = True
 

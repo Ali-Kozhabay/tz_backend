@@ -64,6 +64,21 @@ curl -H "Authorization: Bearer <TOKEN>" \
 websocat "ws://localhost:8000/ws/channels/hq?token=<ACCESS_TOKEN>"
 ```
 
+## API Reference
+
+Looking for the full list of routes, payloads, and roles? See [API_REFERENCE.md](API_REFERENCE.md).
+
+## Frontend Console
+
+A minimal client lives in `frontend/` for exercising the backend without Postman/cURL:
+
+1. Run the backend (e.g., `docker-compose up`).
+2. Open `frontend/index.html` in your browser (no build step required).
+3. Set the API base URL (defaults to `http://localhost:8000`).
+4. Use the panels to register/login, browse courses, mark progress, manage invites, request signed URLs, or join chat channels.
+
+Tokens are stored in `localStorage`, and each panel shows the raw JSON returned by the API for quick inspection.
+
 ## Tests & Coverage
 ```bash
 pytest --cov=app
