@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import enforce_rate_limit, get_db
+from app.crud import users as users_crud
 from app.core.security import (
     TokenType,
     create_access_token,
@@ -11,7 +11,6 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
-from app.models.profile import Profile
 from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenPair, TokenRefreshRequest
 from app.schemas.user import UserCreate, UserRead
@@ -20,30 +19,24 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> User:
+async def register(user_in: UserCreate = Depends(), db: AsyncSession = Depends(get_db)) -> User:
     await enforce_rate_limit(f"register:{user_in.email}", limit=5, window_seconds=3600)
-    stmt = select(User).where(User.email == user_in.email)
-    if await db.scalar(stmt):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="exists")
 
-    user = User(
+    existing = await users_crud.get_by_email(db, user_in.email)
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="email-exists")
+    user = await users_crud.create(
+        db,
         email=user_in.email,
         password_hash=get_password_hash(user_in.password),
     )
-    db.add(user)
-    await db.flush()
-    profile = Profile(user_id=user.id)
-    db.add(profile)
-    await db.commit()
-    await db.refresh(user)
     return user
 
 
 @router.post("/login", response_model=TokenPair)
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)) -> TokenPair:
     await enforce_rate_limit(f"login:{body.email}", limit=10, window_seconds=300)
-    stmt = select(User).where(User.email == body.email)
-    user = await db.scalar(stmt)
+    user = await users_crud.get_by_email(db, body.email)
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid")
 

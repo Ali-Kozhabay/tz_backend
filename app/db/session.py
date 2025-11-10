@@ -5,7 +5,7 @@ from app.core.config import get_settings
 
 def _create_engine() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
     settings = get_settings()
-    engine = create_async_engine(settings.database_url, future=True)
+    engine = create_async_engine(settings.database_url)
     session_factory = async_sessionmaker(
         bind=engine, expire_on_commit=False, autoflush=False, future=True
     )

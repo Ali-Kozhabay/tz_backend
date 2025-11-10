@@ -20,7 +20,7 @@ class Settings(BaseModel):
     """Application configuration derived from environment variables."""
 
     database_url: str = _env_field(
-        "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/app"
+        "DATABASE_URL", "postgresql+asyncpg://superuser:postgres@localhost:5432/app"
     )
     redis_url: str = _env_field("REDIS_URL", "redis://localhost:6379")
     jwt_secret: str = _env_field("JWT_SECRET", "changeme")
