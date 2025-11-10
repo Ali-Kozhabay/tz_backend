@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -10,10 +10,24 @@ from sqlalchemy.engine import make_url
 load_dotenv()
 
 
-def _env_field(name: str, default: Any) -> Field:
+def _env_field(name: str, default: Any, *, cast: Callable[[str], Any] | None = None) -> Field:
     """Return a Field whose default pulls from env vars (fallback to provided default)."""
 
-    return Field(default_factory=lambda name=name, default=default: os.getenv(name, default))
+    def factory() -> Any:
+        value = os.getenv(name)
+        if value is None:
+            return default
+        if cast:
+            return cast(value)
+        if isinstance(default, bool):
+            return value.lower() in {"1", "true", "yes", "on"}
+        if isinstance(default, int):
+            return int(value)
+        if isinstance(default, float):
+            return float(value)
+        return value
+
+    return Field(default_factory=factory)
 
 
 class Settings(BaseModel):
@@ -25,10 +39,10 @@ class Settings(BaseModel):
     redis_url: str = _env_field("REDIS_URL", "redis://localhost:6379")
     jwt_secret: str = _env_field("JWT_SECRET", "changeme")
     jwt_alg: str = _env_field("JWT_ALG", "HS256")
-    access_token_ttl_minutes: int = _env_field("ACCESS_TOKEN_TTL_MINUTES", "15")
-    refresh_token_ttl_days: int = _env_field("REFRESH_TOKEN_TTL_DAYS", "7")
+    access_token_ttl_minutes: int = _env_field("ACCESS_TOKEN_TTL_MINUTES", 15, cast=int)
+    refresh_token_ttl_days: int = _env_field("REFRESH_TOKEN_TTL_DAYS", 7, cast=int)
     smtp_host: str = _env_field("SMTP_HOST", "localhost")
-    smtp_port: int = _env_field("SMTP_PORT", "1025")
+    smtp_port: int = _env_field("SMTP_PORT", 1025, cast=int)
     smtp_user: str | None = _env_field("SMTP_USER", None)
     smtp_pass: str | None = _env_field("SMTP_PASS", None)
     s3_endpoint: str = _env_field("S3_ENDPOINT", "http://localhost:9000")

@@ -4,7 +4,7 @@ import json
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.core.security import decode_token
-from app.db.session import SessionLocal
+from app.db import session as session_module
 from app.models.user import User, UserRole
 from app.schemas.chat import MessagePayload
 from app.services.chat import ChatBroker, create_message, get_or_create_channel, set_pin, soft_delete_message
@@ -22,7 +22,7 @@ async def authenticate(websocket: WebSocket) -> User:
     if payload.get("type") != "access":
         await websocket.close(code=4401)
         raise WebSocketDisconnect
-    async with SessionLocal() as session:
+    async with session_module.SessionLocal() as session:
         user = await session.get(User, int(payload["sub"]))
     if not user:
         await websocket.close(code=4401)
@@ -35,7 +35,7 @@ async def websocket_endpoint(websocket: WebSocket, slug: str):
     await websocket.accept()
     user = await authenticate(websocket)
 
-    async with SessionLocal() as session:
+    async with session_module.SessionLocal() as session:
         await get_or_create_channel(session, slug)
 
     redis = get_async_redis()
@@ -60,7 +60,7 @@ async def websocket_endpoint(websocket: WebSocket, slug: str):
             data = json.loads(raw)
             event_type = data.get("type")
             payload = data.get("payload", {})
-            async with SessionLocal() as session:
+            async with session_module.SessionLocal() as session:
                 if event_type == "message.create":
                     await create_message(
                         session,

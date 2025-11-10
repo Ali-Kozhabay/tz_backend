@@ -26,9 +26,12 @@ async def configure_test_db() -> AsyncIterator[None]:
     async with session_module.engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    fake_sync = fakeredis.FakeRedis(decode_responses=True)
-    fake_async = fakeredis.aioredis.FakeRedis(decode_responses=True)
-    redis_service.override_redis(fake_sync, fake_async)
+    fake_server = fakeredis.FakeServer()
+    fake_sync = fakeredis.FakeRedis(server=fake_server, decode_responses=True)
+    redis_service.override_redis(
+        fake_sync,
+        lambda: fakeredis.aioredis.FakeRedis(server=fake_server, decode_responses=True),
+    )
 
     async def override_get_db() -> AsyncIterator[AsyncSession]:
         async with session_module.SessionLocal() as session:

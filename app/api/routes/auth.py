@@ -19,16 +19,20 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register(user_in: UserCreate = Depends(), db: AsyncSession = Depends(get_db)) -> User:
+async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> User:
     await enforce_rate_limit(f"register:{user_in.email}", limit=5, window_seconds=3600)
 
     existing = await users_crud.get_by_email(db, user_in.email)
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="email-exists")
+    try:
+        password_hash = get_password_hash(user_in.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     user = await users_crud.create(
         db,
         email=user_in.email,
-        password_hash=get_password_hash(user_in.password),
+        password_hash=password_hash,
     )
     return user
 

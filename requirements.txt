@@ -7,7 +7,6 @@ psycopg2-binary==2.9.9
 alembic==1.13.2
 python-dotenv==1.0.1
 pydantic[email]==2.8.2
-passlib[bcrypt]==1.7.4
 pyjwt[crypto]==2.9.0
 redis==5.0.7
 rq==1.16.2
@@ -22,3 +21,4 @@ anyio==4.4.0
 fakeredis==2.23.2
 email-validator==2.2.0
 idna==3.7
+bcrypt==4.2.0
